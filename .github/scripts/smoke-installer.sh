@@ -23,20 +23,22 @@ port=8123
 base="http://127.0.0.1:$port"
 work="${RUNNER_TEMP:-$(mktemp -d)}/installer"
 
-# The asset name install.sh derives from this machine's uname.
-target=$(
-    os=$(uname -s)
-    arch=$(uname -m)
-    case "$os" in
-        Darwin) os_part=macos ;;
-        *) os_part=linux ;;
-    esac
-    case "$arch" in
-        x86_64 | amd64) arch_part=x86_64 ;;
-        *) arch_part=aarch64 ;;
-    esac
-    printf '%s-%s' "$os_part" "$arch_part"
-)
+# The asset name install.sh derives from this machine's uname. Kept free of a
+# `case` inside the command substitution: bash 3.2, which macOS still ships,
+# cannot parse one there.
+os=$(uname -s)
+arch=$(uname -m)
+if [ "$os" = Darwin ]; then
+    os_part=macos
+else
+    os_part=linux
+fi
+if [ "$arch" = x86_64 ] || [ "$arch" = amd64 ]; then
+    arch_part=x86_64
+else
+    arch_part=aarch64
+fi
+target="$os_part-$arch_part"
 
 server=''
 cleanup() {
