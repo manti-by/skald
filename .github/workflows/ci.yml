@@ -1,0 +1,52 @@
+name: ci
+
+# Every push and every pull request runs the same gate as `make check` on both
+# supported platforms, so the release workflow can trust the tree it publishes.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: .github/scripts/linux-deps.sh
+
+      - name: cargo fmt, clippy and tests
+        run: make check
+
+      - name: Build the release binary
+        run: cargo build --release --locked
+
+      - name: Check shell syntax
+        run: |
+          sh -n install.sh
+          for script in .github/scripts/*.sh; do bash -n "$script"; done
+
+      - name: Lint shell
+        run: .github/scripts/lint-shell.sh
+
+      - name: Installer help
+        run: ./install.sh --help
+
+      - name: Installer smoke test
+        run: .github/scripts/smoke-installer.sh
