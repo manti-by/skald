@@ -35,7 +35,7 @@ created on first run.
 | `src/main.rs` | Process entry: logging, fonts, menu wiring, window creation. |
 | `src/app.rs` | `SkaldApp`, the root view. Owns the playlist, player handle, overlays and persisted state. |
 | `src/actions.rs` | GPUI actions and their key bindings. |
-| `src/ui/` | One module per region of the design frame: `shell`, `track_list`, `sidebar`, `now_playing`, `eq_overlay`, `about_overlay`, `add_overlay`, `theme`. |
+| `src/ui/` | One module per region of the design frame: `shell`, `track_list`, `sidebar`, `now_playing`, `eq_overlay`, `about_overlay`, `add_overlay`, `titlebar`, `theme`. |
 | `src/library/` | Playlist model, recursive directory scan, tag and cover extraction. |
 | `src/player/` | `engine` (cpal output and commands), `decoder` (symphonia), `dsp` (biquad EQ and FFT taps), `spectrum` (waterfall buffer). |
 | `src/settings/` | Paths, JSON schemas, first-run creation and atomic writes. |

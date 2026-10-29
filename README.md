@@ -19,6 +19,8 @@ Built with Rust and [GPUI](https://gpui.rs), and runs on macOS and Ubuntu 24.04.
 - Five-band equalizer (±6 dB) with a smooth response curve.
 - Theme follows the current cover: dark covers get the dark palette, light
   covers get the light one.
+- Custom window controls: close, minimize and maximize in the top strip, which
+  also drags the window.
 - Window position, volume, EQ gains, playlist and playback position survive a
   restart.
 

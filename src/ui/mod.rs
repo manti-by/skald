@@ -7,4 +7,5 @@ pub mod now_playing;
 pub mod shell;
 pub mod sidebar;
 pub mod theme;
+pub mod titlebar;
 pub mod track_list;

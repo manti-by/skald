@@ -16,7 +16,7 @@ use crate::settings::Settings;
 use crate::ui::theme::{FRAME_HEIGHT, FRAME_WIDTH};
 use gpui::{
     App, Application, Bounds, Menu, MenuItem, SystemMenuType, TitlebarOptions, WindowBounds,
-    WindowOptions, point, prelude::*, px, size,
+    WindowDecorations, WindowOptions, point, prelude::*, px, size,
 };
 
 fn main() {
@@ -36,17 +36,24 @@ fn main() {
         cx.on_action(|_: &Quit, cx: &mut App| cx.quit());
 
         let bounds = restored_bounds(cx);
+        #[cfg(target_os = "linux")]
+        let window_decorations = Some(WindowDecorations::Client);
+        #[cfg(not(target_os = "linux"))]
+        let window_decorations: Option<WindowDecorations> = None;
 
         let window = cx
             .open_window(
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
                     window_min_size: Some(size(px(FRAME_WIDTH), px(FRAME_HEIGHT))),
+                    // The OS titlebar is hidden; `titlebar.rs` draws the three
+                    // buttons and the drag strip in the top 30px of the frame.
                     titlebar: Some(TitlebarOptions {
                         title: Some("Skald".into()),
-                        appears_transparent: false,
-                        traffic_light_position: None,
+                        appears_transparent: true,
+                        traffic_light_position: Some(point(px(-100.), px(14.))),
                     }),
+                    window_decorations,
                     ..Default::default()
                 },
                 |window, cx| {

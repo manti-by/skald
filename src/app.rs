@@ -626,6 +626,15 @@ impl SkaldApp {
         self.persist_state();
     }
 
+    /// The custom close button: flush exactly like the native close did, then
+    /// remove the window.
+    pub(crate) fn close_window(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.remember_window(window.bounds());
+        self.shutdown();
+        window.remove_window();
+        cx.quit();
+    }
+
     // -------------------------------------------------------------------- tick
 
     fn start_ticker(&mut self, cx: &mut Context<Self>) {
@@ -777,7 +786,7 @@ impl Render for SkaldApp {
             });
         }
 
-        root
+        root.child(self.render_titlebar(cx))
     }
 }
 

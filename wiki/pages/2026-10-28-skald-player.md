@@ -31,8 +31,8 @@ A new single-crate binary, scaffolded to match `manti-by/sk`:
 - `src/settings/` — `settings.json` and `state.json` schemas, first-run defaults,
   clamping and atomic temp-file-plus-rename writes.
 - `src/ui/` — the shell, sidebar, track list, now-playing row, EQ and About
-  overlays, the add-card empty state, and `theme.rs` as the single source of all
-  design-frame geometry and both palettes.
+  overlays, the add-card empty state, the custom titlebar, and `theme.rs` as the
+  single source of all design-frame geometry and both palettes.
 - `Makefile`, `.github/workflows/{ci,release}.yml`, `.github/scripts/*.sh`,
   `install.sh`, `README.md`, `AGENTS.md`, `wiki/docs/` — the repository and
   release plumbing.
@@ -69,6 +69,11 @@ on macOS, while seeking is covered by the decoder tests.
 - **Fixed 1320×768 minimum.** The design frame is the smallest useful window;
   larger windows stretch the main column while the sidebar and modal sizes stay
   fixed.
+- **Custom window chrome.** The OS titlebar is hidden with
+  `appears_transparent` and the native traffic lights are moved offscreen;
+  `titlebar.rs` draws close/minimize/maximize and owns the top 30px drag strip.
+  macOS hands the original mouse-down event to `performWindowDragWithEvent`;
+  Linux uses `start_window_move` and client-side decorations.
 - **Bundled static Inter instances.** GPUI needs fonts it can load on both
   platforms without relying on system font discovery.
 
