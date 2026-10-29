@@ -22,7 +22,7 @@ use gpui::{
 use std::collections::{HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Which modal card is on screen.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,6 +62,9 @@ pub struct SkaldApp {
     pub(crate) focus: FocusHandle,
     config: PathBuf,
     spectrum_history: VecDeque<Vec<f32>>,
+    spectrum_pending: VecDeque<Vec<f32>>,
+    spectrum_accum: f64,
+    last_tick: Instant,
     scroll_fraction: f32,
     cover_generation: u64,
     ticks: u64,
@@ -96,6 +99,9 @@ impl SkaldApp {
             cover: None,
             background: None,
             spectrum_image: None,
+            spectrum_pending: VecDeque::with_capacity(SPECTRUM_COLUMNS),
+            spectrum_accum: 0.0,
+            last_tick: Instant::now(),
             luminance: None,
             overlay: None,
             drag: None,
@@ -193,9 +199,11 @@ impl SkaldApp {
     }
 
     pub(crate) fn scroll_by(&mut self, delta: ScrollDelta, cx: &mut Context<Self>) {
+        // Positive wheel deltas mean "scroll up" in GPUI, matching the
+        // platform's natural direction; the list counts rows downwards.
         let rows = match delta {
-            ScrollDelta::Lines(delta) => delta.y,
-            ScrollDelta::Pixels(delta) => f32::from(delta.y) / ROW_HEIGHT,
+            ScrollDelta::Lines(delta) => -delta.y,
+            ScrollDelta::Pixels(delta) => -f32::from(delta.y) / ROW_HEIGHT,
         };
         self.scroll_fraction += rows;
         let steps = self.scroll_fraction.trunc() as i32;
@@ -378,6 +386,7 @@ impl SkaldApp {
         self.current = Some(index);
         self.position = 0.0;
         self.scroll = scroll_to_show(self.scroll, self.tracks.len(), index);
+        self.clear_spectrum(cx);
         self.load_cover(cx);
         self.state_dirty = true;
         cx.notify();
@@ -402,6 +411,7 @@ impl SkaldApp {
         let (left, width) = main_x(f32::from(window.viewport_size().width));
         let fraction = ((f32::from(x) - left) / (width - 2.0)).clamp(0.0, 1.0) as f64;
         self.position = fraction * duration;
+        self.clear_spectrum(cx);
         if self.loaded
             && let Some(player) = &self.player
         {
@@ -635,6 +645,18 @@ impl SkaldApp {
         cx.quit();
     }
 
+    /// Drops queued and displayed spectrum data, for example after a seek.
+    fn clear_spectrum(&mut self, cx: &mut Context<Self>) {
+        self.spectrum_pending.clear();
+        self.spectrum_accum = 0.0;
+        if !self.spectrum_history.is_empty() {
+            self.spectrum_history.clear();
+            if let Some(old) = self.spectrum_image.take() {
+                cx.drop_image(old, None);
+            }
+        }
+    }
+
     // -------------------------------------------------------------------- tick
 
     fn start_ticker(&mut self, cx: &mut Context<Self>) {
@@ -644,12 +666,13 @@ impl SkaldApp {
         self.ticking = true;
         cx.spawn(async move |this, cx| {
             loop {
+                // Match the display refresh so spectrum columns appear as they
+                // are decoded instead of arriving in 50 ms batches.
                 cx.background_executor()
-                    .timer(Duration::from_millis(50))
+                    .timer(Duration::from_millis(16))
                     .await;
                 let alive = this.update(cx, |this, cx| {
                     this.tick(cx);
-                    cx.notify();
                 });
                 if alive.is_err() {
                     break;
@@ -662,7 +685,10 @@ impl SkaldApp {
     fn tick(&mut self, cx: &mut Context<Self>) {
         let mut dirty = false;
         let mut events = Vec::new();
-        let mut columns = 0usize;
+        let mut interval = 1.0 / 43.0;
+        let now = Instant::now();
+        let elapsed = now.saturating_duration_since(self.last_tick);
+        self.last_tick = now;
 
         if let Some(player) = &self.player {
             if self.drag != Some(Drag::Progress) && self.loaded {
@@ -672,16 +698,39 @@ impl SkaldApp {
                     dirty = true;
                 }
             }
+            interval = player.spectrum_interval_seconds();
             while let Some(event) = player.try_event() {
                 events.push(event);
             }
+            // The decoder emits a packet's columns in a burst. Queue them and
+            // release one column per hop so the waterfall scrolls continuously
+            // instead of jumping several pixels at a time.
             while let Some(column) = player.try_spectrum() {
+                if self.spectrum_pending.len() >= SPECTRUM_COLUMNS {
+                    self.spectrum_pending.pop_front();
+                }
+                self.spectrum_pending.push_back(column);
+            }
+        }
+
+        let mut columns = 0usize;
+        if self.is_playing() {
+            self.spectrum_accum += elapsed.as_secs_f64().min(0.25);
+            while self.spectrum_accum >= interval {
+                let Some(column) = self.spectrum_pending.pop_front() else {
+                    self.spectrum_accum = 0.0;
+                    break;
+                };
                 if self.spectrum_history.len() >= SPECTRUM_COLUMNS {
                     self.spectrum_history.pop_front();
                 }
                 self.spectrum_history.push_back(column);
+                self.spectrum_accum -= interval;
                 columns += 1;
             }
+        } else {
+            self.spectrum_pending.clear();
+            self.spectrum_accum = 0.0;
         }
 
         if columns > 0 {
@@ -725,7 +774,7 @@ impl SkaldApp {
             self.settings_dirty = false;
             self.persist_settings();
         }
-        if self.state_dirty && self.ticks.is_multiple_of(40) {
+        if self.state_dirty && self.ticks.is_multiple_of(120) {
             self.state_dirty = false;
             self.persist_state();
         }

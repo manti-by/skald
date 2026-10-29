@@ -62,6 +62,14 @@ on macOS, while seeking is covered by the decoder tests.
 - **Manual list scrolling.** A fixed ten-row viewport plus a custom scrollbar
   matches the wireframe exactly; GPUI's native overflow scrolling was rejected
   because it cannot reproduce the 37px row viewport and 6px track.
+- **Spectrum columns are paced, not dumped.** The decoder emits a packet's
+  columns in a burst, which made the waterfall jump several pixels at once.
+  The UI queues them and releases one column per hop (about 23 ms at 44.1 kHz)
+  on a 16 ms tick, so the scroll is continuous and the audio clock sets the
+  pace. A one-pixel box blur softens the raster without hiding transients.
+- **Playlist wheel direction matches GPUI.** Positive wheel deltas mean "up"
+  in GPUI (as in its own list), so the track list subtracts them instead of
+  adding.
 - **Separate Add Folder and Add Files commands.** The plan's single ambiguous
   "Add…" became `File → Add Folder…` (`Cmd/Ctrl+O`) and `File → Add Files…`
   (`Cmd/Ctrl+Shift+O`), because the scan path handles directories and files
@@ -71,7 +79,7 @@ on macOS, while seeking is covered by the decoder tests.
   fixed.
 - **Custom window chrome.** The OS titlebar is hidden with
   `appears_transparent` and the native traffic lights are moved offscreen;
-  `titlebar.rs` draws close/minimize/maximize and owns the top 30px drag strip.
+  `titlebar.rs` draws close/minimize/maximize and owns the top 32px drag strip.
   macOS hands the original mouse-down event to `performWindowDragWithEvent`;
   Linux uses `start_window_move` and client-side decorations.
 - **Bundled static Inter instances.** GPUI needs fonts it can load on both

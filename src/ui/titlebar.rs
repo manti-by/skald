@@ -1,7 +1,7 @@
 //! Custom window chrome: three traffic-light buttons and the drag strip that
 //! replaces the native titlebar.
 //!
-//! The strip occupies the top 30px of the window, inside the design frame's
+//! The strip occupies the top 32px of the window, inside the design frame's
 //! 86px gutter. Everything except the buttons starts a window drag, exactly
 //! like the OS titlebar used to.
 
@@ -9,9 +9,10 @@ use crate::app::SkaldApp;
 use gpui::prelude::*;
 use gpui::{AnyElement, Context, CursorStyle, MouseButton, Window, div, px, rgb, rgba};
 
-pub const TITLEBAR_HEIGHT: f32 = 30.0;
+pub const TITLEBAR_HEIGHT: f32 = 32.0;
 const BUTTON_SIZE: f32 = 12.0;
 const BUTTON_LEFT: f32 = 20.0;
+const BUTTON_TOP: f32 = 20.0;
 const BUTTON_GAP: f32 = 8.0;
 
 const CLOSE: u32 = 0xFF5F57;
@@ -21,15 +22,26 @@ const GLYPH: u32 = 0x00000066;
 
 impl SkaldApp {
     pub(crate) fn render_titlebar(&self, cx: &mut Context<Self>) -> AnyElement {
-        div()
+        let close = Self::chrome_button("chrome-close", CLOSE, "×", cx, |this, window, cx| {
+            this.close_window(window, cx)
+        });
+        let minimize =
+            Self::chrome_button("chrome-minimize", MINIMIZE, "−", cx, |_, window, _| {
+                window.minimize_window()
+            });
+        let maximize = Self::chrome_button("chrome-maximize", MAXIMIZE, "+", cx, |_, window, _| {
+            window.zoom_window()
+        });
+
+        let mut bar = div()
             .absolute()
             .top_0()
             .left_0()
             .w_full()
             .h(px(TITLEBAR_HEIGHT))
             .flex()
-            .items_center()
-            .pl(px(BUTTON_LEFT))
+            .items_start()
+            .pt(px(BUTTON_TOP))
             .gap(px(BUTTON_GAP))
             .cursor(CursorStyle::OpenHand)
             .on_mouse_down(
@@ -38,29 +50,29 @@ impl SkaldApp {
                     cx.stop_propagation();
                     begin_window_move(window);
                 }),
-            )
-            .child(Self::chrome_button(
-                "chrome-close",
-                CLOSE,
-                "×",
-                cx,
-                |this, window, cx| this.close_window(window, cx),
-            ))
-            .child(Self::chrome_button(
-                "chrome-minimize",
-                MINIMIZE,
-                "−",
-                cx,
-                |_, window, _| window.minimize_window(),
-            ))
-            .child(Self::chrome_button(
-                "chrome-maximize",
-                MAXIMIZE,
-                "+",
-                cx,
-                |_, window, _| window.zoom_window(),
-            ))
-            .into_any_element()
+            );
+
+        // macOS puts the traffic lights on the left; Linux clients put their
+        // window buttons on the right, with close nearest the edge.
+        #[cfg(target_os = "macos")]
+        {
+            bar = bar
+                .pl(px(BUTTON_LEFT))
+                .child(close)
+                .child(minimize)
+                .child(maximize);
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            bar = bar
+                .justify_end()
+                .pr(px(BUTTON_LEFT))
+                .child(minimize)
+                .child(maximize)
+                .child(close);
+        }
+
+        bar.into_any_element()
     }
 
     fn chrome_button(

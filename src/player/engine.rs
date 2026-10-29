@@ -309,6 +309,11 @@ impl Player {
     pub fn try_spectrum(&self) -> Option<Vec<f32>> {
         self.spectrum.try_recv().ok()
     }
+
+    /// Time represented by one waterfall column at the output rate.
+    pub fn spectrum_interval_seconds(&self) -> f64 {
+        crate::player::spectrum::HOP as f64 / self.output_rate.max(1) as f64
+    }
 }
 
 impl Drop for Player {

@@ -86,18 +86,64 @@ pub fn render_image(mut image: RgbaImage) -> Arc<RenderImage> {
 /// Builds the 350x197 spectrogram from the waterfall history. Newest columns
 /// sit on the right; low frequencies sit on the bottom.
 pub fn spectrum_bitmap(history: &VecDeque<Vec<f32>>) -> Arc<RenderImage> {
-    let mut image = RgbaImage::new(SPECTRUM_COLUMNS as u32, ROWS as u32);
+    const BLUR_RADIUS: usize = 1;
+
+    let mut values = vec![0u8; SPECTRUM_COLUMNS * ROWS];
     let first_x = SPECTRUM_COLUMNS.saturating_sub(history.len());
 
     for (column_index, column) in history.iter().enumerate() {
-        let x = (first_x + column_index) as u32;
+        let x = first_x + column_index;
         for (row, value) in column.iter().take(ROWS).enumerate() {
             let intensity = value.clamp(0.0, 1.0).powf(0.8);
             let shade = (intensity * 236.0) as u8;
-            let y = (ROWS - 1 - row) as u32;
-            image.put_pixel(x, y, image::Rgba([shade, shade, shade, 255]));
+            let y = ROWS - 1 - row;
+            values[y * SPECTRUM_COLUMNS + x] = shade;
         }
     }
 
+    // A one-pixel box blur takes the hard single-pixel speckle off the
+    // waterfall without hiding the transients.
+    let values = box_blur(&values, BLUR_RADIUS);
+
+    let mut bytes = Vec::with_capacity(values.len() * 4);
+    for value in values {
+        bytes.extend_from_slice(&[value, value, value, 255]);
+    }
+    let image = RgbaImage::from_raw(SPECTRUM_COLUMNS as u32, ROWS as u32, bytes)
+        .expect("spectrum dimensions match the buffer");
     render_image(image)
+}
+
+/// Separable box blur over the grayscale raster, clamping at the edges so the
+/// panel does not gain a dark halo.
+fn box_blur(values: &[u8], radius: usize) -> Vec<u8> {
+    let width = SPECTRUM_COLUMNS;
+    let height = ROWS;
+    let mut horizontal = vec![0u8; values.len()];
+    for y in 0..height {
+        let row = y * width;
+        for x in 0..width {
+            let low = x.saturating_sub(radius);
+            let high = (x + radius).min(width - 1);
+            let mut sum = 0u32;
+            for sample in low..=high {
+                sum += u32::from(values[row + sample]);
+            }
+            horizontal[row + x] = (sum / (high - low + 1) as u32) as u8;
+        }
+    }
+
+    let mut output = vec![0u8; values.len()];
+    for y in 0..height {
+        let low = y.saturating_sub(radius);
+        let high = (y + radius).min(height - 1);
+        for x in 0..width {
+            let mut sum = 0u32;
+            for sample in low..=high {
+                sum += u32::from(horizontal[sample * width + x]);
+            }
+            output[y * width + x] = (sum / (high - low + 1) as u32) as u8;
+        }
+    }
+    output
 }
