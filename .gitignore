@@ -2,3 +2,9 @@
 dist
 .DS_Store
 *.swp
+
+# macOS app bundle, built by `make app` / scripts/bundle.sh
+*.app
+
+# Icon build scratch (iconset directory used by scripts/make-icons.sh)
+icons.iconset/

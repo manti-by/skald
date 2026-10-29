@@ -6,6 +6,10 @@
 
 use gpui::Rgba;
 
+/// The family loaded from `assets/fonts/` in `main.rs`. Every view inherits it
+/// from the root element, so no view may name a font of its own.
+pub const FONT_FAMILY: &str = "Roboto";
+
 pub const FRAME_WIDTH: f32 = 1320.0;
 pub const FRAME_HEIGHT: f32 = 768.0;
 pub const PAD_TOP: f32 = 86.0;

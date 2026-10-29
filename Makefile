@@ -7,14 +7,17 @@
 #   make check   fmt, clippy and tests
 #   make release run the gate, then build target/release/skald
 #   make install install the binary into CARGO_HOME/bin
+#   make app     run the gate, then bundle target/Skald.app
+#   make icons   regenerate assets/icon.icns from media/skald.svg
 #   make clean   remove build artifacts
 
 CARGO ?= cargo
 BIN := target/debug/skald
 RELEASE_BIN := target/release/skald
+APP_BUNDLE := target/Skald.app
 
 .DEFAULT_GOAL := build
-.PHONY: build run test check fmt fmt-check lint clean install release
+.PHONY: build run test check fmt fmt-check lint clean install release app bundle icons
 
 ## build: compile the binary.
 build:
@@ -53,6 +56,22 @@ release: check
 install:
 	$(CARGO) install --path .
 
+# `app` gates, builds the optimized binary and wraps it in a macOS .app whose
+# Dock icon comes from media/skald.svg.
+app: check
+	$(CARGO) build --release
+	./scripts/bundle.sh
+
+# `bundle` is the packaging step alone: no gate, no rebuild.
+bundle:
+	$(CARGO) build --release
+	./scripts/bundle.sh
+
+## icons: regenerate assets/icon.icns from the icon source SVG.
+icons:
+	./scripts/make-icons.sh
+
 ## clean: remove build artifacts.
 clean:
 	$(CARGO) clean
+	rm -rf $(APP_BUNDLE) icons.iconset

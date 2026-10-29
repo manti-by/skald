@@ -14,7 +14,9 @@ use crate::settings::{self, PlayerState, Settings, WindowState};
 use crate::ui::eq_overlay::gain_at_window_y;
 use crate::ui::now_playing::{VOLUME_WIDTH, main_x, volume_x};
 use crate::ui::shell::{self, SPECTRUM_COLUMNS};
-use crate::ui::theme::{Palette, ROW_HEIGHT, VISIBLE_ROWS, palette_for, scroll_to_show};
+use crate::ui::theme::{
+    FONT_FAMILY, Palette, ROW_HEIGHT, VISIBLE_ROWS, palette_for, scroll_to_show,
+};
 use gpui::prelude::*;
 use gpui::{
     AnyElement, Bounds, Context, FocusHandle, Pixels, Render, RenderImage, ScrollDelta, Window, div,
@@ -808,7 +810,7 @@ impl Render for SkaldApp {
         let mut root = div()
             .relative()
             .size_full()
-            .font_family("Inter")
+            .font_family(FONT_FAMILY)
             .track_focus(&self.focus)
             .child(shell::backdrop(self.background.clone(), palette))
             .child(shell::stage(sidebar, main))

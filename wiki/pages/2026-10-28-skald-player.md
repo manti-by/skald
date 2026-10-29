@@ -18,7 +18,7 @@ leave open.
 
 A new single-crate binary, scaffolded to match `manti-by/sk`:
 
-- `src/main.rs` — window, bundled Inter fonts, the native menu bar, restored
+- `src/main.rs` — window, bundled Roboto fonts, the native menu bar, restored
   window bounds and the close handler that flushes state.
 - `src/app.rs` — `SkaldApp`: playlist, selection and scroll, playback, cover and
   background loading, spectrum history, EQ drag state, import, persistence and
@@ -82,8 +82,10 @@ on macOS, while seeking is covered by the decoder tests.
   `titlebar.rs` draws close/minimize/maximize and owns the top 32px drag strip.
   macOS hands the original mouse-down event to `performWindowDragWithEvent`;
   Linux uses `start_window_move` and client-side decorations.
-- **Bundled static Inter instances.** GPUI needs fonts it can load on both
-  platforms without relying on system font discovery.
+- **Bundled static Roboto instances.** GPUI needs fonts it can load on both
+  platforms without relying on system font discovery. The three faces are
+  static instances of the Roboto variable font, named so GPUI groups them as
+  one family and resolves Regular, Medium and SemiBold by weight.
 
 ## Follow-ups
 

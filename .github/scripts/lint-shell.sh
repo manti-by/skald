@@ -16,6 +16,7 @@ fi
 # so -s sh (POSIX mode) is what matters here.
 shellcheck -s sh install.sh
 shellcheck .github/scripts/*.sh
+shellcheck scripts/*.sh
 
 # Newer shellcheck drops checks rather than adding them (0.11 dropped SC2015),
 # so a clean run locally can still be red on a runner pinned to an older build.

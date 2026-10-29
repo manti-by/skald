@@ -40,7 +40,7 @@ jobs:
       - name: Check shell syntax
         run: |
           sh -n install.sh
-          for script in .github/scripts/*.sh; do bash -n "$script"; done
+          for script in .github/scripts/*.sh scripts/*.sh; do bash -n "$script"; done
 
       - name: Lint shell
         run: .github/scripts/lint-shell.sh

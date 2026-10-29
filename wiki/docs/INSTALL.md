@@ -12,7 +12,7 @@ shortcuts and the on-disk state format live in [MORE.md](MORE.md).
   `cover.jpg`, `cover.jpeg`, `cover.png`, `folder.jpg`, `folder.jpeg` or
   `folder.png` in the track's folder.
 
-Nothing else is needed at runtime: the binary embeds its only font and has no
+Nothing else is needed at runtime: the binary embeds its fonts and has no
 runtime data files.
 
 ## Install script
@@ -25,6 +25,21 @@ The script downloads the newest release for your machine, verifies its SHA-256
 and installs into `~/.local/bin`. Use `--dir <path>` or `SKALD_INSTALL_DIR` to
 change that, and `--version v0.1.1` to pin a release. Run it with `--help` for
 the whole environment list.
+
+## macOS app bundle
+
+Every macOS release archive holds two things: the bare `skald` binary that the
+install script uses, and `Skald.app` with the app icon. Download
+`skald-<version>-macos-aarch64.tar.gz` (or `-macos-x86_64` on Intel) from the
+[releases page](https://github.com/manti-by/skald/releases), then:
+
+```console
+$ tar -xzf skald-*-macos-*.tar.gz
+$ open Skald.app
+```
+
+Drag `Skald.app` into `/Applications` to keep it. The bundle is ad-hoc signed,
+so Gatekeeper asks for confirmation the first time it opens.
 
 ## From source
 
@@ -48,6 +63,11 @@ $ ./target/release/skald
 
 `make install` runs `cargo install --path .` and puts `skald` in
 `$CARGO_HOME/bin`.
+
+On macOS, `make app` runs the same gate and then bundles `target/Skald.app`,
+which is the way to run a local build with the app icon in the Dock. Icons are
+generated from `media/skald.svg`; `make icons` rebuilds `assets/icon.icns` on
+its own.
 
 ## First run
 
