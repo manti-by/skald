@@ -23,7 +23,7 @@ $ curl -LsSf https://raw.githubusercontent.com/manti-by/skald/master/install.sh 
 
 The script downloads the newest release for your machine, verifies its SHA-256
 and installs into `~/.local/bin`. Use `--dir <path>` or `SKALD_INSTALL_DIR` to
-change that, and `--version v0.1.0` to pin a release. Run it with `--help` for
+change that, and `--version v0.1.1` to pin a release. Run it with `--help` for
 the whole environment list.
 
 ## From source

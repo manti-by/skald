@@ -1,6 +1,6 @@
 [package]
 name = "skald"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "A focused desktop music player built with Rust and GPUI"
 license = "MIT"
@@ -27,3 +27,12 @@ walkdir = "2.5.0"
 [profile.release]
 lto = "thin"
 strip = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.5"
+objc2-app-kit = { version = "0.3.2", default-features = false, features = [
+    "std",
+    "NSApplication",
+    "NSWindow",
+    "NSEvent",
+] }
