@@ -5,8 +5,8 @@
 //! [`crate::ui`] are views over it and never touch the player directly.
 
 use crate::actions::{
-    About, AddFiles, AddFolder, CloseOverlay, PlayPause, PlaySelected, RemoveSelected, SelectNext,
-    SelectPrevious, ToggleEqualizer,
+    About, AddFiles, AddFolder, CloseOverlay, MoveSelectedDown, MoveSelectedUp, PlayPause,
+    PlaySelected, RemoveSelected, SelectNext, SelectPrevious, ToggleEqualizer,
 };
 use crate::library::{self, Track};
 use crate::player::{Event, Player};
@@ -293,6 +293,46 @@ impl SkaldApp {
         }
 
         self.scroll = self.scroll.min(self.max_scroll());
+        self.state_dirty = true;
+        cx.notify();
+    }
+
+    /// Moves the whole selection up (`-1`) or down (`1`) by one row without
+    /// changing the selection. The playlist order is remembered by
+    /// `state.json`, so the move survives a restart.
+    pub(crate) fn move_selected(&mut self, delta: i32, cx: &mut Context<Self>) {
+        let count = self.tracks.len();
+        if count < 2 || self.selected.is_empty() || !matches!(delta, -1 | 1) {
+            return;
+        }
+        let old_selection: HashSet<usize> = self
+            .selected
+            .iter()
+            .copied()
+            .filter(|index| *index < count)
+            .collect();
+        if old_selection.is_empty() {
+            return;
+        }
+
+        let mut order: Vec<usize> = (0..count).collect();
+        move_selected_order(&mut order, &old_selection, delta);
+        if order.iter().enumerate().all(|(step, row)| *row == step) {
+            return; // the selection was already at the edge, nothing moved
+        }
+
+        // `order[step]` is the row that ends up at `step`; invert it so each
+        // tracked row can be told where it went.
+        let mut moved_to = vec![usize::MAX; count];
+        for (step, row) in order.iter().enumerate() {
+            moved_to[*row] = step;
+        }
+
+        let old_tracks = self.tracks.clone();
+        self.tracks = order.iter().map(|row| old_tracks[*row].clone()).collect();
+        self.selected = old_selection.iter().map(|row| moved_to[*row]).collect();
+        self.current = self.current.map(|row| moved_to[row]);
+
         self.state_dirty = true;
         cx.notify();
     }
@@ -828,6 +868,8 @@ impl Render for SkaldApp {
             .on_action(cx.listener(|this, _: &RemoveSelected, _, cx| this.remove_selected(cx)))
             .on_action(cx.listener(|this, _: &SelectPrevious, _, cx| this.select_relative(-1, cx)))
             .on_action(cx.listener(|this, _: &SelectNext, _, cx| this.select_relative(1, cx)))
+            .on_action(cx.listener(|this, _: &MoveSelectedUp, _, cx| this.move_selected(-1, cx)))
+            .on_action(cx.listener(|this, _: &MoveSelectedDown, _, cx| this.move_selected(1, cx)))
             .on_action(|_: &crate::actions::Quit, _, cx| cx.quit());
 
         if let Some(overlay) = self.overlay {
@@ -841,6 +883,72 @@ impl Render for SkaldApp {
     }
 }
 
+/// Applies one step of a playlist move to `order`, where `order[step]` holds
+/// the row currently shown at `step` and `selected` holds those rows. Every
+/// selected row swaps with the available row above (negative delta) or below
+/// (positive delta), so a block keeps its internal order and the selection
+/// stays together.
+fn move_selected_order(order: &mut [usize], selected: &HashSet<usize>, delta: i32) {
+    let count = order.len();
+    if delta < 0 {
+        for step in 1..count {
+            let above = order[step - 1];
+            let moving = order[step];
+            if selected.contains(&moving) && !selected.contains(&above) {
+                order.swap(step - 1, step);
+            }
+        }
+    } else {
+        for step in (0..count - 1).rev() {
+            let below = order[step + 1];
+            let moving = order[step];
+            if selected.contains(&moving) && !selected.contains(&below) {
+                order.swap(step, step + 1);
+            }
+        }
+    }
+}
+
 fn path_key(path: &Path) -> PathBuf {
     std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn selection(values: &[usize]) -> HashSet<usize> {
+        values.iter().copied().collect()
+    }
+
+    /// The playlist as a result of moving the selection one step.
+    fn run(delta: i32, selected: &[usize], count: usize) -> Vec<usize> {
+        let mut order: Vec<usize> = (0..count).collect();
+        move_selected_order(&mut order, &selection(selected), delta);
+        order
+    }
+
+    #[test]
+    fn a_single_row_moves_one_step() {
+        assert_eq!(run(-1, &[3], 6), vec![0, 1, 3, 2, 4, 5]);
+        assert_eq!(run(1, &[1], 5), vec![0, 2, 1, 3, 4]);
+    }
+
+    #[test]
+    fn a_selected_block_keeps_its_order() {
+        assert_eq!(run(-1, &[3, 4], 6), vec![0, 1, 3, 4, 2, 5]);
+        assert_eq!(run(1, &[1, 2], 5), vec![0, 3, 1, 2, 4]);
+    }
+
+    #[test]
+    fn non_adjacent_rows_each_take_one_step() {
+        assert_eq!(run(-1, &[1, 5], 6), vec![1, 0, 2, 3, 5, 4]);
+    }
+
+    #[test]
+    fn rows_without_room_to_move_stay_put() {
+        assert_eq!(run(-1, &[0, 2], 4), vec![0, 2, 1, 3]);
+        assert_eq!(run(1, &[4], 5), vec![0, 1, 2, 3, 4]);
+        assert_eq!(run(-1, &[0], 3), vec![0, 1, 2]);
+    }
 }

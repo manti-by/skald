@@ -18,6 +18,8 @@ actions!(
         RemoveSelected,
         SelectPrevious,
         SelectNext,
+        MoveSelectedUp,
+        MoveSelectedDown,
         CloseOverlay,
         Quit,
     ]
@@ -39,6 +41,8 @@ pub fn bind_keys() -> Vec<KeyBinding> {
         KeyBinding::new("backspace", RemoveSelected, None),
         KeyBinding::new("up", SelectPrevious, None),
         KeyBinding::new("down", SelectNext, None),
+        KeyBinding::new("alt-up", MoveSelectedUp, None),
+        KeyBinding::new("alt-down", MoveSelectedDown, None),
         KeyBinding::new("escape", CloseOverlay, None),
     ];
     bindings.push(KeyBinding::new(&format!("{MOD}-o"), AddFolder, None));
@@ -56,7 +60,7 @@ mod tests {
     #[test]
     fn binds_every_shortcut_from_the_docs() {
         let bindings = bind_keys();
-        assert_eq!(bindings.len(), 12);
+        assert_eq!(bindings.len(), 14);
 
         let keys: Vec<_> = bindings
             .iter()
@@ -75,6 +79,17 @@ mod tests {
         }
         for key in ["o", "e", "i", "q"] {
             assert!(keys.iter().any(|bound| bound == key), "missing {key}");
+        }
+
+        for (mover, key) in [("MoveSelectedUp", "up"), ("MoveSelectedDown", "down")] {
+            let moved = bindings
+                .iter()
+                .find(|binding| {
+                    let keystroke = &binding.keystrokes()[0];
+                    keystroke.key() == key && keystroke.modifiers().alt
+                })
+                .unwrap_or_else(|| panic!("{mover} missing the alt-{key} binding"));
+            assert_eq!(moved.keystrokes()[0].key(), key);
         }
 
         let add_files = bindings
