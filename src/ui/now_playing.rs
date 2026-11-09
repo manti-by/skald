@@ -11,7 +11,32 @@ use gpui::{
 
 pub const VOLUME_WIDTH: f32 = 224.0;
 const PROGRESS_HEIGHT: f32 = 6.0;
-const THUMB_WIDTH: f32 = 14.0;
+
+/// Handle diameter grows with the bar height and stays in the 8–12 px range.
+fn thumb_diameter(bar_height: f32) -> f32 {
+    (bar_height + 4.0).clamp(8.0, 12.0)
+}
+
+/// Round handle centered on the end of a fill bar of `bar_height`.
+fn progress_thumb(fraction: f32, bar_height: f32, color: gpui::Rgba) -> AnyElement {
+    let diameter = thumb_diameter(bar_height);
+    div()
+        .absolute()
+        .left(relative(fraction))
+        .top_0()
+        .h_full()
+        .w(px(0.))
+        .child(
+            div()
+                .absolute()
+                .left(px(-diameter / 2.0))
+                .top(px(bar_height / 2.0 - diameter / 2.0))
+                .size(px(diameter))
+                .rounded_full()
+                .bg(color),
+        )
+        .into_any_element()
+}
 
 impl SkaldApp {
     pub(crate) fn render_main(&self, cx: &mut Context<Self>) -> AnyElement {
@@ -224,18 +249,13 @@ impl SkaldApp {
                     .h_full()
                     .w(relative(fraction))
                     .rounded(px(3.))
-                    .bg(palette.bar_fill)
-                    .child(
-                        div()
-                            .absolute()
-                            .right_0()
-                            .top_0()
-                            .w(px(THUMB_WIDTH * fraction.max(0.06)))
-                            .h_full()
-                            .rounded(px(3.))
-                            .bg(palette.scroll_thumb),
-                    ),
+                    .bg(palette.bar_fill),
             )
+            .child(progress_thumb(
+                fraction,
+                PROGRESS_HEIGHT,
+                palette.scroll_thumb,
+            ))
             .into_any_element()
     }
 
@@ -295,18 +315,13 @@ impl SkaldApp {
                     .h_full()
                     .w(relative(fraction))
                     .rounded(px(3.))
-                    .bg(palette.bar_fill)
-                    .child(
-                        div()
-                            .absolute()
-                            .right_0()
-                            .top_0()
-                            .w(px(THUMB_WIDTH))
-                            .h_full()
-                            .rounded(px(3.))
-                            .bg(palette.scroll_thumb),
-                    ),
+                    .bg(palette.bar_fill),
             )
+            .child(progress_thumb(
+                fraction,
+                PROGRESS_HEIGHT,
+                palette.scroll_thumb,
+            ))
             .into_any_element()
     }
 }

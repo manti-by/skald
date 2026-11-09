@@ -14,6 +14,7 @@ Shortcuts, the state format and the supported formats. Installation is in
 | Play / pause | `Space` | `Space` |
 | Play the selected row | `Enter` or double-click | `Enter` or double-click |
 | Previous / next row | `Up` / `Down` | `Up` / `Down` |
+| Move the selected rows up / down | `Alt+Up` / `Alt+Down` | `Alt+Up` / `Alt+Down` |
 | Select a range | `Shift`-click | `Shift`-click |
 | Add or remove one row from the selection | `Cmd`-click | `Ctrl`-click |
 | Remove the selection from the playlist | `Delete` / `Backspace` | `Delete` / `Backspace` |
@@ -23,7 +24,9 @@ Shortcuts, the state format and the supported formats. Installation is in
 | Quit | `Cmd+Q` | `Ctrl+Q` |
 
 Removing a row never deletes the file. Missing files are dropped from the
-playlist when Skald starts, so a moved library does not leave dead rows.
+playlist when Skald starts, so a moved library does not leave dead rows. The
+new playlist order is saved to `state.json`, so rows moved up or down keep
+their place after a restart.
 
 ## Supported formats
 

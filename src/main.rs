@@ -8,8 +8,8 @@ mod settings;
 mod ui;
 
 use crate::actions::{
-    About, AddFiles, AddFolder, PlayPause, PlaySelected, Quit, RemoveSelected, SelectNext,
-    SelectPrevious, ToggleEqualizer,
+    About, AddFiles, AddFolder, MoveSelectedDown, MoveSelectedUp, PlayPause, PlaySelected, Quit,
+    RemoveSelected, SelectNext, SelectPrevious, ToggleEqualizer,
 };
 use crate::app::SkaldApp;
 use crate::settings::Settings;
@@ -126,6 +126,10 @@ fn menus() -> Vec<Menu> {
             items: vec![
                 MenuItem::action("Play / Pause", PlayPause),
                 MenuItem::action("Play Selected", PlaySelected),
+                MenuItem::separator(),
+                MenuItem::action("Move Selected Up", MoveSelectedUp),
+                MenuItem::action("Move Selected Down", MoveSelectedDown),
+                MenuItem::separator(),
                 MenuItem::action("Remove Selected", RemoveSelected),
                 MenuItem::separator(),
                 MenuItem::action("Previous Track", SelectPrevious),
